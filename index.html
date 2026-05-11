@@ -128,14 +128,19 @@
   .ad-unit {
     width: 100%;
     max-width: 560px;
-    margin: 0 auto 10px;
+    margin: 0 auto;
     padding: 0 18px;
     text-align: center;
     overflow: hidden;
+    min-height: 0;
   }
   .ad-unit ins {
     display: block;
     width: 100%;
+  }
+  /* Only add margin when ad actually loads */
+  .ad-unit ins[data-ad-status="filled"] {
+    margin-bottom: 10px;
   }
 
   /* ════════════════════════════
@@ -480,9 +485,9 @@
             <span class="op-label">Addition</span>
           </label>
           <div class="range-row">
-            (&nbsp;<input class="range-input" id="add-a1" type="number" value="99">&nbsp;to&nbsp;<input class="range-input" id="add-a2" type="number" value="999">&nbsp;)
+            (&nbsp;<input class="range-input" id="add-a1" type="number" value="99" min="1">&nbsp;to&nbsp;<input class="range-input" id="add-a2" type="number" value="999" min="1">&nbsp;)
             &nbsp;+&nbsp;
-            (&nbsp;<input class="range-input" id="add-b1" type="number" value="99">&nbsp;to&nbsp;<input class="range-input" id="add-b2" type="number" value="999">&nbsp;)
+            (&nbsp;<input class="range-input" id="add-b1" type="number" value="99" min="1">&nbsp;to&nbsp;<input class="range-input" id="add-b2" type="number" value="999" min="1">&nbsp;)
           </div>
         </div>
         <div class="config-section">
@@ -498,9 +503,9 @@
             <span class="op-label">Multiplication</span>
           </label>
           <div class="range-row">
-            (&nbsp;<input class="range-input" id="mul-a1" type="number" value="11">&nbsp;to&nbsp;<input class="range-input" id="mul-a2" type="number" value="99">&nbsp;)
+            (&nbsp;<input class="range-input" id="mul-a1" type="number" value="11" min="1">&nbsp;to&nbsp;<input class="range-input" id="mul-a2" type="number" value="99" min="1">&nbsp;)
             &nbsp;&times;&nbsp;
-            (&nbsp;<input class="range-input" id="mul-b1" type="number" value="11">&nbsp;to&nbsp;<input class="range-input" id="mul-b2" type="number" value="99">&nbsp;)
+            (&nbsp;<input class="range-input" id="mul-b1" type="number" value="11" min="1">&nbsp;to&nbsp;<input class="range-input" id="mul-b2" type="number" value="99" min="1">&nbsp;)
           </div>
         </div>
         <div class="config-section">
@@ -660,6 +665,11 @@ const CIRC   = 2 * Math.PI * 33;
 let G = {};
 let currentInput = '';
 
+function parseRange(id, fallback) {
+  const v = parseInt($(id).value);
+  return isNaN(v) ? fallback : Math.max(0, v);
+}
+
 function readConfig() {
   const ops = [];
   if ($('op-add').checked) ops.push('add');
@@ -670,8 +680,8 @@ function readConfig() {
   return {
     ops,
     duration: parseInt($('cfg-duration').value),
-    add: { a:[+$('add-a1').value||99,+$('add-a2').value||999], b:[+$('add-b1').value||99,+$('add-b2').value||999] },
-    mul: { a:[+$('mul-a1').value||11,+$('mul-a2').value||99],  b:[+$('mul-b1').value||11,+$('mul-b2').value||99] },
+    add: { a:[parseRange('add-a1',1),parseRange('add-a2',999)], b:[parseRange('add-b1',1),parseRange('add-b2',999)] },
+    mul: { a:[parseRange('mul-a1',1),parseRange('mul-a2',99)],  b:[parseRange('mul-b1',1),parseRange('mul-b2',99)] },
   };
 }
 
@@ -897,12 +907,36 @@ $('btn-home').addEventListener('click', () => { clearInterval(G.timer); showScre
   $(id).addEventListener('click', () => { clearInterval(G.timer); showScreen('home'); });
 });
 
+const CFG_INPUTS = ['add-a1','add-a2','add-b1','add-b2','mul-a1','mul-a2','mul-b1','mul-b2','cfg-duration'];
+const CFG_CHECKS = ['op-add','op-sub','op-mul','op-div'];
+
+function saveConfig() {
+  const cfg = {};
+  CFG_INPUTS.forEach(id => cfg[id] = $(id).value);
+  CFG_CHECKS.forEach(id => cfg[id] = $(id).checked);
+  localStorage.setItem('sm_cfg', JSON.stringify(cfg));
+}
+
+function loadConfig() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('sm_cfg'));
+    if (!cfg) return;
+    CFG_INPUTS.forEach(id => { if (cfg[id] !== undefined) $(id).value = cfg[id]; });
+    CFG_CHECKS.forEach(id => { if (cfg[id] !== undefined) $(id).checked = cfg[id]; });
+  } catch(e) {}
+}
+
+CFG_INPUTS.forEach(id => $(id).addEventListener('change', saveConfig));
+
 ['op-add','op-sub','op-mul','op-div'].forEach(id => {
   $(id).addEventListener('change', () => {
     const any = ['op-add','op-sub','op-mul','op-div'].some(i => $(i).checked);
     if (!any) $(id).checked = true;
+    saveConfig();
   });
 });
+
+loadConfig();
 </script>
 </body>
 </html>
