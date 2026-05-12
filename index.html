@@ -129,6 +129,7 @@
     flex-shrink: 1;
     min-height: 0;
     max-height: 90px;
+    display: none; /* hidden until Google confirms ad is filled */
   }
   .ad-unit ins { display: block; width: 100%; }
   .ad-unit ins[data-ad-status="filled"] { margin-bottom: 6px; }
@@ -964,5 +965,19 @@ CFG_CHECKS.forEach(function(id) {
 
 loadConfig();
 </script>
+
+<!-- Ad reveal: only show ad containers when Google fills them -->
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      document.querySelectorAll('.ad-unit ins').forEach(function(ins) {
+        if (ins.getAttribute('data-ad-status') === 'filled') {
+          ins.closest('.ad-unit').style.display = 'block';
+        }
+      });
+    }, 2000);
+  });
+</script>
+
 </body>
-</html>
+</html>a
